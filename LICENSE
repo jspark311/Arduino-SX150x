@@ -1,4 +1,4 @@
-Arduino-SX1503 - A library for the Semtech i2c GPIO expander
+SX150x - A library for the Semtech SX150x family of i2c GPIO expanders.
 Copyright (c) 2019 J. Ian Lindsay
 
 Permission is hereby granted, free of charge, to any person
