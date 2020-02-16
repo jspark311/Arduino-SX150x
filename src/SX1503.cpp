@@ -83,6 +83,9 @@ bool SX1503::isrFired() {
 }
 
 
+/*
+* @return 0 on success, non-zero otherwise.
+*/
 int8_t SX1503::init(TwoWire* b) {
   int8_t ret = -1;
   _sx_clear_flag(SX1503_FLAG_INITIALIZED);
@@ -115,7 +118,7 @@ int8_t SX1503::init(TwoWire* b) {
   else {
     ret = refresh();
   }
-  _sx_set_flag(SX1503_FLAG_INITIALIZED, (0 == ret));
+  _sx_set_flag(SX1503_FLAG_INITIALIZED | SX1503_FLAG_DEVICE_PRESENT, (0 == ret));
   return ret;
 }
 
@@ -142,12 +145,22 @@ int8_t SX1503::reset() {
     }
   }
   else {
-    // TODO: Steamroll the registers with the default values.
-    ret = 0;
+    // Steamroll the registers with the default values.
+    uint8_t vals[31] = {
+      0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00,
+      0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+    for (uint8_t i = 0; i < 31; i++) {
+      ret = _write_register(SX1503_REG_DATA_B, &vals[0], 0x12);
+      if (0 == ret) {  ret = _write_register(SX1503_REG_PLD_MODE_B, &vals[SX1503_REG_PLD_MODE_B], 0x0C);  }
+      if (0 == ret) {  ret = _write_register(SX1503_REG_ADVANCED, &vals[SX1503_REG_ADVANCED], 1);  }
+    }
   }
   if (0 == ret) {  ret = refresh();   }
 
-  // IRQ clears on data read.
+  // IRQ clears on data read. No boost.
   if (0 == ret) {  ret = _write_register(SX1503_REG_ADVANCED, 0x04);   }
   // Set all event sensitivities to both edges. We use our sole IRQ line to
   //   read on ALL input changes. Even if the user hasn't asked for a callback
@@ -187,7 +200,7 @@ int8_t SX1503::poll() {
         if (d) {
           for (uint8_t i = 0; i < 8; i++) {
             if ((d >> i) & 1) {
-              if (0 == _invoke_pin_callback((i+8), ((registers[SX1503_REG_DATA_B] >> i) & 1))) {
+              if (0 != _invoke_pin_callback((i+8), ((registers[SX1503_REG_DATA_B] >> i) & 1))) {
                 ret++;
               }
             }
@@ -197,7 +210,7 @@ int8_t SX1503::poll() {
         if (d) {
           for (uint8_t i = 0; i < 8; i++) {
             if ((d >> i) & 1) {
-              if (0 == _invoke_pin_callback(i, ((registers[SX1503_REG_DATA_A] >> i) & 1))) {
+              if (0 != _invoke_pin_callback(i, ((registers[SX1503_REG_DATA_A] >> i) & 1))) {
                 ret++;
               }
             }
@@ -260,6 +273,7 @@ int8_t SX1503::detachInterrupt(SX1503Callback cb) {
 
 
 /*
+* TODO: Implement open-drain.
 */
 int8_t SX1503::digitalWrite(uint8_t pin, uint8_t value) {
   int8_t ret = -2;
@@ -483,7 +497,7 @@ int8_t SX1503::unserialize(const uint8_t* buf, const unsigned int len) {
         }
         break;
       default:  // Unhandled serializer version.
-        return -1;
+        return -2;
     }
     if (_sx_flag(SX1503_FLAG_INITIALIZED)) {
       // If the device has already been initialized, we impart the new conf.
