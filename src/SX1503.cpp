@@ -100,12 +100,12 @@ int8_t SX1503::init(TwoWire* b) {
     // Copy the blob-imparted values and clear the flag so we don't do this again.
     _sx_clear_flag(SX1503_FLAG_FROM_BLOB);
     uint8_t vals[31];
-    for (uint8_t i = 0; i < 31; i++) {  vals[i] = registers[i];  }
     for (uint8_t i = 0; i < 31; i++) {
-
-      int8_t ret = _write_register(SX1503_REG_DATA_B, &vals[0], 0x12);
-      if (0 == ret) {  ret = _write_register(SX1503_REG_PLD_MODE_B, &vals[SX1503_REG_PLD_MODE_B], 0x0C);  }
-      if (0 == ret) {  ret = _write_register(SX1503_REG_ADVANCED, &vals[SX1503_REG_ADVANCED], 1);  }
+      vals[i] = registers[i];
+    }
+    int8_t ret = _write_register(SX1503_REG_DATA_B, &vals[0], 0x12);
+    if (0 == ret) {  ret = _write_register(SX1503_REG_PLD_MODE_B, &vals[SX1503_REG_PLD_MODE_B], 0x0C);  }
+    if (0 == ret) {  ret = _write_register(SX1503_REG_ADVANCED, &vals[SX1503_REG_ADVANCED], 1);  }
       if (0 != ret) {
         return -3;
       }
@@ -152,11 +152,9 @@ int8_t SX1503::reset() {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
-    for (uint8_t i = 0; i < 31; i++) {
-      ret = _write_register(SX1503_REG_DATA_B, &vals[0], 0x12);
-      if (0 == ret) {  ret = _write_register(SX1503_REG_PLD_MODE_B, &vals[SX1503_REG_PLD_MODE_B], 0x0C);  }
-      if (0 == ret) {  ret = _write_register(SX1503_REG_ADVANCED, &vals[SX1503_REG_ADVANCED], 1);  }
-    }
+    ret = _write_register(SX1503_REG_DATA_B, &vals[0], 0x12);
+    if (0 == ret) {  ret = _write_register(SX1503_REG_PLD_MODE_B, &vals[SX1503_REG_PLD_MODE_B], 0x0C);  }
+    if (0 == ret) {  ret = _write_register(SX1503_REG_ADVANCED, &vals[SX1503_REG_ADVANCED], 1);  }
   }
   if (0 == ret) {  ret = refresh();   }
 
@@ -301,6 +299,13 @@ uint8_t SX1503::digitalRead(uint8_t pin) {
     ret = (registers[SX1503_REG_DATA_B] >> (pin & 0x07)) & 0x01;
   }
   return ret;
+}
+
+
+uint16_t SX1503::getPinValues() {
+  uint16_t ret0 = (uint16_t) registers[0];
+  uint16_t ret1 = (uint16_t) registers[1];
+  return (ret0 | (ret1 << 8));
 }
 
 

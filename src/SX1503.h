@@ -93,6 +93,7 @@ class SX1503 {
     int8_t  gpioMode(uint8_t pin, int mode);
     int8_t  digitalWrite(uint8_t pin, uint8_t value);
     uint8_t digitalRead(uint8_t pin);
+    uint16_t getPinValues();
 
     // Interrupt and callback management...
     int8_t  attachInterrupt(uint8_t pin, SX1503Callback, uint8_t condition);
